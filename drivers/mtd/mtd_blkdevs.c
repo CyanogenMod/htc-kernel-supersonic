@@ -387,6 +387,13 @@ int register_mtd_blktrans(struct mtd_blktrans_ops *tr)
 		return ret;
 	}
 
+	/*
+	 * Empirical measurements revealed that read ahead values larger than
+	 * 4 slowed down boot time, so start out with this small value.
+	 */
+	tr->blkcore_priv->rq->backing_dev_info.ra_pages =
+		(4 * 1024) / PAGE_CACHE_SIZE;
+
 	INIT_LIST_HEAD(&tr->devs);
 	list_add(&tr->list, &blktrans_majors);
 
