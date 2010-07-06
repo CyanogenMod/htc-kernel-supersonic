@@ -995,6 +995,7 @@ dummy_client:
 	mddi->client_pdev.dev.platform_data = &mddi->client_data;
 	printk(KERN_INFO "mddi: publish: %s\n", mddi->client_name);
 	platform_device_register(&mddi->client_pdev);
+
 	return 0;
 
 error_mddi_interface:
@@ -1012,6 +1013,8 @@ error_ioremap:
 
 	printk(KERN_INFO "mddi: mddi_init() failed (%d)\n", ret);
 	return ret;
+
+
 }
 
 #if 0 /* read/write mddi registers from userspace */
