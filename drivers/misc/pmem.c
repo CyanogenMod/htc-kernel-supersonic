@@ -1200,6 +1200,15 @@ static long pmem_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		return pmem_connect(arg, file);
 		break;
 
+	case PMEM_CACHE_FLUSH:
+		{
+			struct pmem_region region;
+			if (copy_from_user(&region, (void __user *)arg,
+						sizeof(struct pmem_region)))
+				return -EFAULT;
+			flush_pmem_file(file, region.offset, region.len);
+			break;
+		}
 	case PMEM_CLEAN_INV_CACHES:
 	case PMEM_CLEAN_CACHES:
 	case PMEM_INV_CACHES:
