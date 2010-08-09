@@ -84,13 +84,11 @@ static void flashlight_hw_command(uint8_t addr, uint8_t data)
 
 static void flashlight_turn_off(void)
 {
-	if (this_fl_str->mode_status == FL_MODE_OFF)
-		return;
-	if (gpio_get_value(this_fl_str->gpio_flash))
-		gpio_direction_output(this_fl_str->gpio_flash, 0);
+	gpio_direction_output(this_fl_str->gpio_flash, 0);
 	gpio_direction_output(this_fl_str->gpio_torch, 0);
 	this_fl_str->mode_status = FL_MODE_OFF;
 	this_fl_str->fl_lcdev.brightness = LED_OFF;
+	wake_unlock(&this_fl_str->wake_lock);
 }
 
 static enum hrtimer_restart flashlight_hrtimer_func(struct hrtimer *timer)
@@ -116,20 +114,6 @@ int aat1271_flashlight_control(int mode)
 		return -EIO;
 	}
 #endif
-	if (this_fl_str->mode_status == mode) {
-		printk(KERN_INFO "%s: mode is same: %d\n",
-							FLASHLIGHT_NAME, mode);
-
-		if (!hrtimer_active(&this_fl_str->timer) &&
-			this_fl_str->mode_status == FL_MODE_OFF) {
-			pr_info("flashlight hasn't been enable or" \
-				"has already reset to 0 due to timeout\n");
-			return ret;
-		}
-		else
-			return -EINVAL;
-	}
-
 	spin_lock_irqsave(&this_fl_str->spin_lock,
 						this_fl_str->spinlock_flags);
 	if (this_fl_str->mode_status == FL_MODE_FLASH) {
@@ -194,7 +178,16 @@ int aat1271_flashlight_control(int mode)
 		this_fl_str->mode_status = FL_MODE_TORCH_LEVEL_2;
 		this_fl_str->fl_lcdev.brightness = LED_HALF - 1;
 	break;
-
+        case FL_MODE_DEATH_RAY:
+		pr_info("%s: death ray\n", __func__);
+		hrtimer_cancel(&this_fl_str->timer);
+		gpio_direction_output(this_fl_str->gpio_flash, 0);
+		udelay(40);
+		gpio_direction_output(this_fl_str->gpio_flash, 1);
+		this_fl_str->mode_status = 0;
+		this_fl_str->fl_lcdev.brightness = 3;
+		wake_lock(&this_fl_str->wake_lock);
+	break;
 	default:
 		printk(KERN_ERR "%s: unknown flash_light flags: %d\n",
 							__func__, mode);
@@ -227,6 +220,8 @@ static void fl_lcdev_brightness_set(struct led_classdev *led_cdev,
 			mode = FL_MODE_TORCH_LED_A;
 		else if (brightness == 2 && fl_str->led_count)
 			mode = FL_MODE_TORCH_LED_B;
+		else if (brightness == 3)
+			mode = FL_MODE_DEATH_RAY;
 		else
 			mode = FL_MODE_TORCH;
 	} else if (brightness > LED_HALF && brightness <= LED_FULL) {
