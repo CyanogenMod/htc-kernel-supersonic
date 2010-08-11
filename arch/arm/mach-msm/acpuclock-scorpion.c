@@ -438,7 +438,7 @@ void __init acpu_freq_tbl_fixup(void)
 	}
 
 	/* Override the fixup because we're overclocking */
-	max_acpu_khz = 1267200;
+	max_acpu_khz = 1113600;
 
 	/* pr_info("Max ACPU freq is %d KHz\n", max_acpu_khz); */
 
