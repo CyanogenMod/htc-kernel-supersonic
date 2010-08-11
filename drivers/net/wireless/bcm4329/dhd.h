@@ -24,7 +24,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: dhd.h,v 1.32.4.7.2.4.14.29 2010/02/23 06:58:21 Exp $
+ * $Id: dhd.h,v 1.32.4.7.2.4.14.44 2010/06/03 21:27:48 Exp $
  */
 
 /****************
@@ -59,6 +59,11 @@
 
 #include <wlioctl.h>
 
+#ifdef DHD_DEBUG
+#ifndef DHD_DEBUG_TRAP
+#define DHD_DEBUG_TRAP
+#endif
+#endif
 
 /* Forward decls */
 struct dhd_bus;
@@ -145,7 +150,16 @@ typedef struct dhd_pub {
 	/* Last error from dongle */
 	int dongle_error;
 
+	/* Suspend disable flag */
+	int suspend_disable_flag;
+
+	/* Pkt filter defination */
+	char * pktfilter[100];
+	int pktfilter_count;
+
 	uint8 country_code[WLC_CNTRY_BUF_SZ];
+	char eventmask[WL_EVENTING_MASK_LEN];
+
 } dhd_pub_t;
 
 	#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)) && defined(CONFIG_PM_SLEEP)
@@ -164,10 +178,10 @@ typedef struct dhd_pub {
 
 	#define DHD_SPINWAIT_SLEEP_INIT(a) DECLARE_WAIT_QUEUE_HEAD(a);
 	#define SPINWAIT_SLEEP(a, exp, us) do { \
-		uint countdown = (us) + 9; \
-		while ((exp) && (countdown >= 10)) { \
+		uint countdown = (us) + 9999; \
+		while ((exp) && (countdown >= 10000)) { \
 			wait_event_interruptible_timeout(a, FALSE, HZ/100); \
-			countdown -= 10; \
+			countdown -= 10000; \
 		} \
 	} while (0)
 
@@ -262,9 +276,13 @@ extern void dhd_os_sdlock_rxq(dhd_pub_t * pub);
 extern void dhd_os_sdunlock_rxq(dhd_pub_t * pub);
 extern void dhd_os_sdlock_sndup_rxq(dhd_pub_t * pub);
 extern void dhd_customer_gpio_wlan_ctrl(int onoff);
+extern int dhd_custom_get_mac_address(unsigned char *buf);
 extern void dhd_os_sdunlock_sndup_rxq(dhd_pub_t * pub);
 extern void dhd_os_sdlock_eventq(dhd_pub_t * pub);
 extern void dhd_os_sdunlock_eventq(dhd_pub_t * pub);
+#ifdef DHD_DEBUG
+extern int write_to_file(dhd_pub_t *dhd, uint8 *buf, int size);
+#endif /* DHD_DEBUG */
 #if defined(OOB_INTR_ONLY)
 extern int dhd_customer_oob_irq_map(unsigned long *irq_flags_ptr);
 #endif /* defined(OOB_INTR_ONLY) */
@@ -311,6 +329,7 @@ extern int dhd_bus_devreset(dhd_pub_t *dhdp, uint8 flag);
 extern uint dhd_bus_status(dhd_pub_t *dhdp);
 extern int  dhd_bus_start(dhd_pub_t *dhdp);
 
+extern void print_buf(void *pbuf, int len, int bytes_per_line);
 
 
 typedef enum cust_gpio_modes {
@@ -320,6 +339,7 @@ typedef enum cust_gpio_modes {
 	WLAN_POWER_OFF
 } cust_gpio_modes_t;
 extern int wl_iw_iscan_set_scan_broadcast_prep(struct net_device *dev, uint flag);
+extern int wl_iw_send_priv_event(struct net_device *dev, char *flag);
 /*
  * Insmod parameters for debug/test
  */
@@ -327,12 +347,37 @@ extern int wl_iw_iscan_set_scan_broadcast_prep(struct net_device *dev, uint flag
 /* Watchdog timer interval */
 extern uint dhd_watchdog_ms;
 
+#if defined(DHD_DEBUG)
+/* Console output poll interval */
+extern uint dhd_console_ms;
+#endif /* defined(DHD_DEBUG) */
 
 /* Use interrupts */
 extern uint dhd_intr;
 
 /* Use polling */
 extern uint dhd_poll;
+
+/* ARP offload agent mode */
+extern uint dhd_arp_mode;
+
+/* ARP offload enable */
+extern uint dhd_arp_enable;
+
+/* Pkt filte enable control */
+extern uint dhd_pkt_filter_enable;
+
+/*  Pkt filter init setup */
+extern uint dhd_pkt_filter_init;
+
+/* Pkt filter mode control */
+extern uint dhd_master_mode;
+
+/* Roaming mode control */
+extern uint dhd_roam;
+
+/* Roaming mode control */
+extern uint dhd_radio_up;
 
 /* Initial idletime ticks (may be -1 for immediate idle, 0 for no idle) */
 extern int dhd_idletime;
